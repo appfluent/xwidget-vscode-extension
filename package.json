@@ -1,0 +1,196 @@
+{
+  "name": "flutter-xwidget",
+  "displayName": "Flutter XWidget",
+  "description": "XWidget support for VSCode: EL syntax highlighting, fragment/controller navigation, code generation, and hot reload.",
+  "version": "0.1.0",
+  "publisher": "appfluent",
+  "license": "MIT",
+  "author": {
+    "name": "Appfluent, Inc.",
+    "url": "https://www.appfluent.us"
+  },
+  "homepage": "https://docs.xwidget.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/appfluent/xwidget-vscode-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/appfluent/xwidget-vscode-extension/issues"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "flutter",
+    "dart",
+    "xwidget",
+    "xml",
+    "server-driven-ui",
+    "sdui",
+    "hot reload",
+    "code generation"
+  ],
+  "icon": "images/icon.png",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "flutter-xwidget.generateAll",
+        "title": "Generate All",
+        "category": "XWidget"
+      },
+      {
+        "command": "flutter-xwidget.generateInflaters",
+        "title": "Generate Inflaters",
+        "category": "XWidget"
+      },
+      {
+        "command": "flutter-xwidget.generateIcons",
+        "title": "Generate Icons",
+        "category": "XWidget"
+      },
+      {
+        "command": "flutter-xwidget.generateControllers",
+        "title": "Generate Controllers",
+        "category": "XWidget"
+      },
+      {
+        "command": "flutter-xwidget.initializeNewProject",
+        "title": "Initialize New Project",
+        "category": "XWidget"
+      },
+      {
+        "command": "flutter-xwidget.initializeExistingProject",
+        "title": "Initialize Existing Project",
+        "category": "XWidget"
+      },
+      {
+        "command": "flutter-xwidget.toggleAutoGenerate",
+        "title": "Toggle Auto-Generate",
+        "category": "XWidget"
+      },
+      {
+        "command": "flutter-xwidget.openDocs",
+        "title": "Open Documentation",
+        "category": "XWidget"
+      },
+      {
+        "command": "flutter-xwidget.openIssues",
+        "title": "View / Report Issues",
+        "category": "XWidget"
+      },
+      {
+        "command": "flutter-xwidget.restoreSchemaRegistration",
+        "title": "Restore Schema Registration",
+        "category": "XWidget"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "flutter-xwidget.generateAll",
+          "when": "flutter-xwidget.isProject"
+        },
+        {
+          "command": "flutter-xwidget.generateInflaters",
+          "when": "flutter-xwidget.isProject"
+        },
+        {
+          "command": "flutter-xwidget.generateIcons",
+          "when": "flutter-xwidget.isProject"
+        },
+        {
+          "command": "flutter-xwidget.generateControllers",
+          "when": "flutter-xwidget.isProject"
+        },
+        {
+          "command": "flutter-xwidget.toggleAutoGenerate",
+          "when": "flutter-xwidget.isProject"
+        },
+        {
+          "command": "flutter-xwidget.restoreSchemaRegistration",
+          "when": "flutter-xwidget.isProject"
+        },
+        {
+          "command": "flutter-xwidget.initializeNewProject",
+          "when": "flutter-xwidget.isFlutterProject && !flutter-xwidget.isProject"
+        },
+        {
+          "command": "flutter-xwidget.initializeExistingProject",
+          "when": "flutter-xwidget.isFlutterProject && !flutter-xwidget.isProject"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Flutter XWidget",
+      "properties": {
+        "flutter-xwidget.autoGenerate": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "description": "Automatically regenerate inflaters, icons, and controllers when source files change. (Stored per-workspace; this setting is informational — use the Toggle Auto-Generate command or the status bar item to change it.)"
+        }
+      }
+    },
+    "grammars": [
+      {
+        "scopeName": "xwidget.el.injection",
+        "path": "./syntaxes/el-injection.tmLanguage.json",
+        "injectTo": [
+          "text.xml"
+        ]
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "flutter-xwidget",
+          "title": "Flutter XWidget",
+          "icon": "images/activity-bar.svg"
+        }
+      ]
+    },
+    "views": {
+      "flutter-xwidget": [
+        {
+          "id": "flutter-xwidget.menu",
+          "name": "XWidget",
+          "when": "flutter-xwidget.isFlutterProject"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "flutter-xwidget.menu",
+        "contents": "This Flutter project isn't using XWidget yet.\n\n[Initialize Existing Project](command:flutter-xwidget.initializeExistingProject)\nSafe — adds XWidget to this project, preserves any existing files.\n\n[Initialize New Project](command:flutter-xwidget.initializeNewProject)\nDestructive — overwrites existing XWidget files. Use for a clean start.\n\n[Open Documentation](command:flutter-xwidget.openDocs)"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "typecheck": "tsc --noEmit",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "ws": "^8.20.0",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.95.0",
+    "@types/ws": "^8.18.1",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}

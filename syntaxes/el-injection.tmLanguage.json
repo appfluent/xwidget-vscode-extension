@@ -1,0 +1,107 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "scopeName": "xwidget.el.injection",
+  "comment": "XWidget EL (Expression Language) — injected into XML attribute values and text. Ports the .flex lexer from the IntelliJ plugin to TextMate. Stateless, so the AFTER_DOT distinction is implemented via lookahead patterns rather than lexer states. Bracket-depth diagnostics are not implemented (TextMate is stateless); they would belong to a future semantic tokens provider.",
+  "injectionSelector": "L:string.quoted.double.xml, L:string.quoted.single.xml",
+  "patterns": [
+    {
+      "include": "#el-expression"
+    }
+  ],
+  "repository": {
+    "el-expression": {
+      "comment": "The ${ ... } block. begin/end gives us proper containment so a stray } in the surrounding XML doesn't get colored as EL_END.",
+      "begin": "(\\$\\{)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.section.embedded.begin.xwidget-el" }
+      },
+      "end": "(\\})",
+      "endCaptures": {
+        "1": { "name": "punctuation.section.embedded.end.xwidget-el" }
+      },
+      "name": "meta.embedded.expression.xwidget-el",
+      "patterns": [
+        { "include": "#literals" },
+        { "include": "#operators" },
+        { "include": "#punctuation" },
+        { "include": "#identifiers" }
+      ]
+    },
+
+    "literals": {
+      "patterns": [
+        {
+          "comment": "Single-quoted string with backslash escapes — matches STRING_LITERAL in the .flex grammar.",
+          "match": "'(?:[^\\\\']|\\\\.)*'",
+          "name": "string.quoted.single.xwidget-el"
+        },
+        {
+          "comment": "Numeric literal: integer or decimal — matches NUMBER_LITERAL.",
+          "match": "\\b[0-9]+(?:\\.[0-9]*)?\\b",
+          "name": "constant.numeric.xwidget-el"
+        },
+        {
+          "match": "\\btrue\\b",
+          "name": "constant.language.boolean.true.xwidget-el"
+        },
+        {
+          "match": "\\bfalse\\b",
+          "name": "constant.language.boolean.false.xwidget-el"
+        }
+      ]
+    },
+
+    "operators": {
+      "comment": "Order matters here — multi-character operators must come before single-character ones. The HTML-entity form &amp;&amp; is included to handle EL inside XML attributes that have been entity-escaped.",
+      "patterns": [
+        { "match": "&amp;&amp;|&&", "name": "keyword.operator.logical.and.xwidget-el" },
+        { "match": "\\|\\|", "name": "keyword.operator.logical.or.xwidget-el" },
+        { "match": "\\?\\?", "name": "keyword.operator.null-coalesce.xwidget-el" },
+        { "match": "==|!=", "name": "keyword.operator.comparison.xwidget-el" },
+        { "match": "<=|>=", "name": "keyword.operator.comparison.xwidget-el" },
+        { "match": "<|>", "name": "keyword.operator.comparison.xwidget-el" },
+        { "match": "~/", "name": "keyword.operator.arithmetic.xwidget-el" },
+        { "match": "[+\\-*/%]", "name": "keyword.operator.arithmetic.xwidget-el" },
+        { "match": "!", "name": "keyword.operator.logical.not.xwidget-el" },
+        { "match": "\\?|:", "name": "keyword.operator.ternary.xwidget-el" }
+      ]
+    },
+
+    "punctuation": {
+      "patterns": [
+        { "match": "\\(", "name": "punctuation.section.parens.begin.xwidget-el" },
+        { "match": "\\)", "name": "punctuation.section.parens.end.xwidget-el" },
+        { "match": "\\[", "name": "punctuation.section.brackets.begin.xwidget-el" },
+        { "match": "\\]", "name": "punctuation.section.brackets.end.xwidget-el" },
+        { "match": ",", "name": "punctuation.separator.comma.xwidget-el" },
+        { "match": "\\.", "name": "punctuation.accessor.xwidget-el" }
+      ]
+    },
+
+    "identifiers": {
+      "comment": "Three flavours of identifier, distinguished by what's before and after them. Order matters — method (after dot, before paren) must come before plain method (after dot) which must come before function (before paren) which must come before plain property.",
+      "patterns": [
+        {
+          "comment": "Method call: an identifier preceded by '.' and followed by '(' — analogous to AFTER_DOT + IDENTIFIER( in the .flex lexer.",
+          "match": "(?<=\\.)([a-zA-Z_][a-zA-Z0-9_]*)(?=\\s*\\()",
+          "name": "entity.name.function.method.xwidget-el"
+        },
+        {
+          "comment": "Property access after a dot — covers both YYINITIAL .property and AFTER_DOT IDENTIFIER (no paren after).",
+          "match": "(?<=\\.)([a-zA-Z_][a-zA-Z0-9_]*)",
+          "name": "variable.other.property.xwidget-el"
+        },
+        {
+          "comment": "Function call: identifier followed by ( and not preceded by a dot — analogous to YYINITIAL IDENTIFIER( in the .flex lexer.",
+          "match": "([a-zA-Z_][a-zA-Z0-9_]*)(?=\\s*\\()",
+          "name": "entity.name.function.xwidget-el"
+        },
+        {
+          "comment": "Plain property/variable reference — the YYINITIAL IDENTIFIER fallback.",
+          "match": "[a-zA-Z_][a-zA-Z0-9_]*",
+          "name": "variable.other.xwidget-el"
+        }
+      ]
+    }
+  }
+}
