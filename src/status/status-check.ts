@@ -10,8 +10,8 @@ import * as vscode from 'vscode';
  *  - `info`    — helpful state worth knowing but not a problem (e.g. custom
  *                fragmentsPath different from default)
  *
- * Pass 4.6 only emits warnings; the severity levels are defined up front so
- * future checks can distinguish.
+ * Current checks mostly emit errors and warnings; the `info` severity is
+ * defined up front so future checks can distinguish.
  */
 export type StatusSeverity = 'error' | 'warning' | 'info';
 

@@ -80,7 +80,7 @@ export const TERMINAL_NAME = 'XWidget';
 // completion is meaningfully better with it.
 export const REDHAT_XML_EXTENSION_ID = 'redhat.vscode-xml';
 
-// Marketplace ID of the Dart-Code extension. Used by Pass 3b's controller
+// Marketplace ID of the Dart-Code extension. Used by the controller
 // navigation feature, which calls Dart-Code's analysis-server-backed
 // `vscode.executeWorkspaceSymbolProvider` to resolve `<Controller name="X"/>`
 // references to Dart class definitions. Soft dependency — same prompt

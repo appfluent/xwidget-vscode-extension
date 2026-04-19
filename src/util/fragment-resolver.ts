@@ -17,13 +17,13 @@ import {
  *      exists via `fs.access`.
  *   3. Return URIs for the ones that exist.
  *
- * Rooted search — changed from Pass 3b's project-wide suffix-match approach
- * (Pass 4.5). Motivation: project-wide search produced false positives from
- * test fixtures and archived copies, and the new behavior matches what
- * `xml.fileAssociations` is now scoped to. The tradeoff is that fragments
- * stored outside `fragmentsPath` (e.g. in `test/`) no longer resolve. That's
- * considered acceptable for v0.1 and can be revisited if real use cases
- * emerge.
+ * Rooted search — uses `<workspaceRoot>/<fragmentsPath>/<candidate>` rather
+ * than project-wide suffix matching. Motivation: project-wide search produces
+ * false positives from test fixtures and archived copies, and the rooted
+ * behavior matches what `xml.fileAssociations` is scoped to. The tradeoff is
+ * that fragments stored outside `fragmentsPath` (e.g. in `test/`) no longer
+ * resolve. That's considered acceptable for v0.1 and can be revisited if real
+ * use cases emerge.
  *
  * Returns an empty array if no matches are found, if the workspace root or
  * fragmentsPath is unknown, or if the candidate paths resolve outside

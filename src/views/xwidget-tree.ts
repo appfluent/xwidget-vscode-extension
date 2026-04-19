@@ -13,8 +13,8 @@ import {
  * (runs a command) or a section header (visually groups related actions,
  * substitutes for menu separators which VSCode trees don't support).
  *
- * The `status-item` kind is new in Pass 4.6 — it's the same shape as `action`
- * but carries severity styling (icon + theme color).
+ * The `status-item` kind has the same shape as `action` but carries severity
+ * styling (icon + theme color).
  */
 class TreeItem extends vscode.TreeItem {
   constructor(
@@ -58,9 +58,9 @@ class TreeItem extends vscode.TreeItem {
  * Tree view data provider for the XWidget Activity Bar view. Renders three
  * sections when the workspace is an XWidget project:
  *
- *   - Status (Pass 4.6, only shown when there are items to surface)
- *   - Generate (same as Pass 2a)
- *   - Help (same as Pass 2a)
+ *   - Status (only shown when there are items to surface)
+ *   - Generate
+ *   - Help
  *
  * In non-XWidget workspaces getChildren returns an empty array so VSCode
  * falls back to the viewsWelcome content defined in package.json.

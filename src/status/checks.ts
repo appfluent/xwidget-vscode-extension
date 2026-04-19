@@ -23,8 +23,8 @@ interface XmlFileAssociation {
 }
 
 /**
- * Builds the five status checks for Pass 4.6. Order of array is not
- * meaningful — the tree provider orders by severity via runStatusChecks.
+ * Builds the status checks. Order of array is not meaningful — the tree
+ * provider orders by severity via runStatusChecks.
  *
  * All checks early-out with `undefined` when the workspace isn't detected
  * as an XWidget project. The tree provider should already gate on

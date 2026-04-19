@@ -21,14 +21,13 @@ import { Version } from '../util/version';
  * Central state and coordination for the XWidget extension. Mirrors the
  * IntelliJ plugin's XWidgetService.kt.
  *
- * Pass 2a responsibilities:
+ * Responsibilities:
  *  - Detect whether the workspace is an XWidget project.
  *  - Load and watch xwidget_config.yaml and pubspec.lock.
  *  - Expose versions, config, and the per-workspace auto-generate toggle.
  *  - Fire change events so UI listeners (status bar, tree view) can refresh.
- *
- * Pass 2b adds file watchers for spec sources so auto-generation actually
- * triggers regeneration commands.
+ *  - Provide file watchers for spec sources so auto-generation actually
+ *    triggers regeneration commands.
  */
 export class XWidgetService implements vscode.Disposable {
   private readonly output: vscode.OutputChannel;
@@ -129,7 +128,7 @@ export class XWidgetService implements vscode.Disposable {
     await this.state.update(WORKSPACE_STATE_AUTO_GENERATE, enabled);
     this.output.appendLine(`Auto-generate ${enabled ? 'enabled' : 'disabled'}.`);
     this._onDidChange.fire();
-    // Pass 2b: XWidgetWatcherService will observe this event and start/stop
+    // XWidgetWatcherService observes this event and starts/stops
     // spec-file watchers accordingly.
   }
 
@@ -167,8 +166,8 @@ export class XWidgetService implements vscode.Disposable {
         this.logConfigSummary();
         // Wire up Red Hat XML completion via .vscode/settings.json. Idempotent
         // and silent unless it actually had work to do; safe to call on every
-        // refresh. Pass 4.5: pattern is now scoped to the configured
-        // fragmentsPath rather than the workspace-wide `**/*.xml`.
+        // refresh. The pattern is scoped to the configured fragmentsPath
+        // rather than a workspace-wide `**.xml`.
         await registerXmlSchema(
           this._workspaceRoot,
           this._config.fragmentsPath,
@@ -207,8 +206,8 @@ export class XWidgetService implements vscode.Disposable {
         const becameProject = !previous.isProject;
         if (becameProject) {
           void promptForRedHatXmlIfNeeded(this.context);
-          // Same fire-and-forget pattern for Dart-Code, used by Pass 3b's
-          // controller navigation and Pass 4's hot reload. Most Flutter devs
+          // Same fire-and-forget pattern for Dart-Code, used by the
+          // controller navigation and hot reload features. Most Flutter devs
           // already have it installed so this is silent for them; for the
           // rest, same info-toast UX as the Red Hat XML prompt.
           void promptForDartCodeIfNeeded(this.context);

@@ -50,7 +50,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // `when: flutter-xwidget.isFlutterProject` clause on the view contribution
   // — non-Flutter workspaces don't see it at all.
   //
-  // Pass 4.6: the tree now shows a Status section with warnings/errors from
+  // The tree shows a Status section with warnings/errors from
   // the registered checks, plus a numeric badge on the Activity Bar icon so
   // issues are discoverable even when the tree is collapsed.
   const statusChecks = buildStatusChecks(service, context);
@@ -81,7 +81,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const autoGen = new AutoGenWatcher(service, terminal, output);
   context.subscriptions.push(autoGen);
 
-  // Pass 3b: navigation providers for <fragment> and <Controller> references.
+  // Navigation providers for <fragment> and <Controller> references.
   // All three providers gate internally on isXWidgetFragment(document), so
   // registering against `language: xml` is safe — non-XWidget XML files in
   // the workspace are unaffected.
@@ -105,7 +105,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
   registerOpenReferenceCommand(context);
 
-  // Pass 4: hot reload via Dart VM service extensions. Gates internally on
+  // Hot reload via Dart VM service extensions. Gates internally on
   // session type (`dart`) and xwidget version (>= 0.4.2). No-op until a
   // Dart-Code debug session actually fires the `dart.debuggerUris` event.
   registerShowOutputCommand(context, output);

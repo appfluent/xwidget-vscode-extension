@@ -22,11 +22,12 @@ interface XmlFileAssociation {
 /**
  * Builds the glob pattern that we write into `xml.fileAssociations`.
  * Scoped to the user's configured `fragmentsPath` (default: `resources/fragments`)
- * so Red Hat XML only parses files in that tree. Pass 3a.5 used a broad
- * `**\/*.xml` pattern and relied on the schema's `targetNamespace` to filter
- * at validation time, but that loaded the LSP with parsing every XML file
- * in the workspace. Pass 4.5 narrows to `fragmentsPath` to avoid that cost
- * and to make the scope intelligible at a glance.
+ * so Red Hat XML only parses files in that tree rather than every XML file
+ * in the workspace.
+ *
+ * Uses `**.xml` rather than `**\/*.xml` — the recursive-plus-slash form
+ * breaks Red Hat XML's relative systemId resolution when the XSD lives
+ * outside the matched tree.
  *
  * The pattern uses forward slashes regardless of OS — Red Hat XML's
  * minimatch engine requires that.
@@ -38,7 +39,7 @@ function buildPattern(fragmentsPath: string): string {
     .replace(/\\/g, '/')
     .replace(/^\.\//, '')
     .replace(/\/+$/, '');
-  return `${normalized}/**/*.xml`;
+  return `${normalized}/**.xml`;
 }
 
 /**

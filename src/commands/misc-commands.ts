@@ -23,11 +23,11 @@ export function registerMiscCommands(
     vscode.commands.registerCommand('flutter-xwidget.toggleAutoGenerate', async () => {
       await service.setAutoGenerateEnabled(!service.autoGenerateEnabled);
     }),
-    // Pass 4.6 — click target for the "Schema registration removed" status
-    // item. Clears the "already registered" workspace flag so registerXmlSchema
+    // Click target for the "Schema registration removed" status item.
+    // Clears the "already registered" workspace flag so registerXmlSchema
     // will re-add our entry on the next call, then invokes it directly.
     //
-    // Pass 4.6.1: modal confirmation before writing to settings.json. Users
+    // Shows a modal confirmation before writing to settings.json. Users
     // clicking a tree row expect to be asked first, not have a config file
     // silently modified under them.
     vscode.commands.registerCommand(
