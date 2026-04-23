@@ -13,3 +13,4 @@ CONTRIBUTING.md
 **/*.map
 **/*.ts
 docs/**
+images/screenshots/**
