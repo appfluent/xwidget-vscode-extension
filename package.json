@@ -2,7 +2,7 @@
   "name": "flutter-xwidget",
   "displayName": "Flutter XWidget",
   "description": "XWidget support for VSCode: EL syntax highlighting, fragment/controller navigation, code generation, and hot reload.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "appfluent",
   "license": "MIT",
   "author": {
@@ -21,7 +21,8 @@
     "vscode": "^1.95.0"
   },
   "categories": [
-    "Programming Languages", "Other"
+    "Programming Languages",
+    "Other"
   ],
   "keywords": [
     "flutter",
@@ -134,7 +135,7 @@
           "type": "boolean",
           "default": false,
           "scope": "window",
-          "description": "Automatically regenerate inflaters, icons, and controllers when source files change. (Stored per-workspace; this setting is informational — use the Toggle Auto-Generate command or the status bar item to change it.)"
+          "description": "Automatically regenerate inflaters, icons, and controllers when source files change. (Stored per-workspace; this setting is informational \u2014 use the Toggle Auto-Generate command or the status bar item to change it.)"
         }
       }
     },
@@ -168,7 +169,7 @@
     "viewsWelcome": [
       {
         "view": "flutter-xwidget.menu",
-        "contents": "This Flutter project isn't using XWidget yet.\n\n[Initialize Existing Project](command:flutter-xwidget.initializeExistingProject)\nSafe — adds XWidget to this project, preserves any existing files.\n\n[Initialize New Project](command:flutter-xwidget.initializeNewProject)\nDestructive — overwrites existing XWidget files. Use for a clean start.\n\n[Open Documentation](command:flutter-xwidget.openDocs)"
+        "contents": "This Flutter project isn't using XWidget yet.\n\n[Initialize Existing Project](command:flutter-xwidget.initializeExistingProject)\nSafe \u2014 adds XWidget to this project, preserves any existing files.\n\n[Initialize New Project](command:flutter-xwidget.initializeNewProject)\nDestructive \u2014 overwrites existing XWidget files. Use for a clean start.\n\n[Open Documentation](command:flutter-xwidget.openDocs)"
       }
     ]
   },
@@ -179,7 +180,8 @@
     "watch": "node esbuild.js --watch",
     "typecheck": "tsc --noEmit",
     "package": "vsce package",
-    "publish": "vsce publish"
+    "publish": "vsce publish",
+    "test": "vitest run"
   },
   "dependencies": {
     "ws": "^8.20.0",
@@ -191,6 +193,7 @@
     "@types/ws": "^8.18.1",
     "@vscode/vsce": "^3.2.0",
     "esbuild": "^0.24.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.10"
   }
 }

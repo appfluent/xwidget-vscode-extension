@@ -8,6 +8,8 @@ node_modules/**
 .gitignore
 .vscodeignore
 esbuild.js
+Makefile
+tool/**
 tsconfig.json
 CONTRIBUTING.md
 **/*.map

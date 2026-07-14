@@ -7,18 +7,38 @@ import { Version } from './version';
  */
 
 // XWidget XML namespace — gate for syntax highlighting, codelens, hover, go-to.
-export const XWIDGET_NAMESPACE = 'http://www.appfluent.us/xwidget';
+// Current namespace (xwidget.dev). The namespace moved here from the legacy
+// appfluent.us URL; fragments in the wild still use either, so detection must
+// accept both. XWIDGET_NAMESPACES is the full set to match against.
+export const XWIDGET_NAMESPACE = 'https://xwidget.dev/fragments';
+export const XWIDGET_NAMESPACE_LEGACY = 'http://www.appfluent.us/xwidget';
+export const XWIDGET_NAMESPACES = [XWIDGET_NAMESPACE, XWIDGET_NAMESPACE_LEGACY];
+
+// XWidget's config directory within the user's project (xwidget_builder >=
+// 0.7.0). Config files and generated schemas live here; older projects keep
+// them at the project root until the builder migrates them.
+export const CONFIG_DIR = '.xwidget';
 
 // Marker / resource files.
 // Configuration file. Read on activation, watched for changes so config
 // overrides take effect without reloading. NOT used for project detection —
 // that's solely driven by xwidget_builder in pubspec.yaml dev_dependencies.
+// Lives in CONFIG_DIR for builder >= 0.7.0 projects, at the project root
+// before that — readXWidgetConfig checks both.
 export const CONFIG_FILE = 'xwidget_config.yaml';
 export const PUBSPEC_FILE = 'pubspec.yaml';
 export const PUBSPEC_LOCK_FILE = 'pubspec.lock';
-// Generated XSD that Red Hat XML uses for completion/validation. Lives at the
-// project root. Referenced from .vscode/settings.json's xml.fileAssociations.
+// Legacy (builder < 0.7.0) generated XSD at the project root. Referenced from
+// .vscode/settings.json's xml.fileAssociations; its value doubles as the
+// marker identifying our legacy entry there, so it must never change.
 export const SCHEMA_FILE = 'xwidget_schema.g.xsd';
+// Builder >= 0.7.0 artifacts, inside CONFIG_DIR. The catalog maps each
+// XWidget namespace to its schema; registering it via xml.catalogs replaces
+// the legacy fileAssociations mechanism. LemMinX resolves these
+// workspace-relative paths against the workspace root, so they're written
+// as-is into committed settings.
+export const CATALOG_FILE = `${CONFIG_DIR}/schema_catalog.g.xml`;
+export const FRAGMENTS_SCHEMA_FILE = `${CONFIG_DIR}/fragments_schema.g.xsd`;
 
 // Dev-dependency name that signals an XWidget project even without the marker.
 export const XWIDGET_BUILDER_DEP = 'xwidget_builder';
@@ -94,6 +114,9 @@ export const WORKSPACE_STATE_AUTO_GENERATE = 'flutter-xwidget.autoGenerate';
 // .vscode/settings.json's xml.fileAssociations. Once true we never re-add,
 // even if the user later removes our entry — respect their edit.
 export const WORKSPACE_STATE_SCHEMA_REGISTERED = 'flutter-xwidget.schemaRegistered';
+
+// Same contract as above but for the xml.catalogs entry (builder >= 0.7.0).
+export const WORKSPACE_STATE_CATALOG_REGISTERED = 'flutter-xwidget.catalogRegistered';
 
 // Workspace state key tracking whether the user clicked "Don't Ask Again"
 // on the Red Hat XML install prompt for this workspace. Other dismissal

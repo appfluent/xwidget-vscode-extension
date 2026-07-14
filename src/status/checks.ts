@@ -2,12 +2,15 @@ import * as vscode from 'vscode';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import {
+  CATALOG_FILE,
   DART_CODE_EXTENSION_ID,
+  FRAGMENTS_SCHEMA_FILE,
   HOT_RELOAD_SINCE_VERSION,
   REDHAT_XML_EXTENSION_ID,
   SCHEMA_FILE,
   URL_DOCS_QUICK_START,
   URL_DOCS_UPGRADING,
+  WORKSPACE_STATE_CATALOG_REGISTERED,
   WORKSPACE_STATE_SCHEMA_REGISTERED,
 } from '../util/constants';
 import { XWidgetService } from '../services/xwidget-service';
@@ -46,9 +49,10 @@ export function buildStatusChecks(
 }
 
 /**
- * Error: xwidget_schema.g.xsd hasn't been generated yet. Without it, Red Hat
- * XML has nothing to validate against and completion is useless even if the
- * extension is installed and the file association is registered.
+ * Error: no generated fragment schema exists — neither the builder >= 0.7.0
+ * `.xwidget/fragments_schema.g.xsd` nor the legacy root `xwidget_schema.g.xsd`.
+ * Without one, Red Hat XML has nothing to validate against and completion is
+ * useless even if the extension is installed and registration succeeded.
  *
  * Click → run Generate All. First-time users stuck wondering why nothing
  * works end up here and get a single-click resolution.
@@ -57,24 +61,33 @@ async function checkSchemaFileGenerated(
   service: XWidgetService,
 ): Promise<StatusItem | undefined> {
   if (!service.isProject || !service.workspaceRoot) return undefined;
-  const schemaAbs = path.join(service.workspaceRoot, SCHEMA_FILE);
-  try {
-    await fs.access(schemaAbs);
-    return undefined;
-  } catch {
-    return {
-      id: 'schema-file:not-generated',
-      severity: 'error',
-      label: 'Schema not generated',
-      tooltip:
-        `${SCHEMA_FILE} doesn't exist yet. Until it's generated, XML completion and ` +
-        'validation for fragments cannot work. Click to run code generation now.',
-      command: {
-        command: 'flutter-xwidget.generateAll',
-        title: 'Generate All',
-      },
-    };
+  // Either era counts: .xwidget/fragments_schema.g.xsd (builder >= 0.7.0)
+  // or the legacy root xwidget_schema.g.xsd.
+  const candidates = [
+    path.join(service.workspaceRoot, FRAGMENTS_SCHEMA_FILE),
+    path.join(service.workspaceRoot, SCHEMA_FILE),
+  ];
+  for (const schemaAbs of candidates) {
+    try {
+      await fs.access(schemaAbs);
+      return undefined;
+    } catch {
+      // keep looking
+    }
   }
+  return {
+    id: 'schema-file:not-generated',
+    severity: 'error',
+    label: 'Schema not generated',
+    tooltip:
+      'The fragment schema has not been generated yet. Until it exists, XML ' +
+      'completion and validation for fragments cannot work. Click to run ' +
+      'code generation now.',
+    command: {
+      command: 'flutter-xwidget.generateAll',
+      title: 'Generate All',
+    },
+  };
 }
 
 /**
@@ -92,16 +105,40 @@ async function checkSchemaEntryRegistered(
   context: vscode.ExtensionContext,
 ): Promise<StatusItem | undefined> {
   if (!service.isProject) return undefined;
-  // Only a "problem" if we previously registered. A fresh project with no
-  // entry yet is handled by `checkSchemaFileGenerated` (missing xsd) or by
-  // registerXmlSchema automatically running once the xsd exists.
+  const config = vscode.workspace.getConfiguration('xml');
+
+  // Catalog mode (builder >= 0.7.0): the xml.catalogs entry supersedes the
+  // legacy fileAssociations entry, so it's the only one checked.
+  if (
+    context.workspaceState.get<boolean>(WORKSPACE_STATE_CATALOG_REGISTERED, false)
+  ) {
+    const catalogs = config.inspect<string[]>('catalogs')?.workspaceValue ?? [];
+    if (catalogs.includes(CATALOG_FILE)) return undefined;
+    return {
+      id: 'schema-registration:removed',
+      severity: 'warning',
+      label: 'Schema catalog registration removed',
+      tooltip:
+        `Our entry for ${CATALOG_FILE} is no longer in .vscode/settings.json's ` +
+        'xml.catalogs. XML completion and validation for fragments, routes, and ' +
+        'values will not work until the entry is restored. Click to re-register.',
+      command: {
+        command: 'flutter-xwidget.restoreSchemaRegistration',
+        title: 'Restore schema registration',
+      },
+    };
+  }
+
+  // Legacy flow. Only a "problem" if we previously registered. A fresh
+  // project with no entry yet is handled by `checkSchemaFileGenerated`
+  // (missing xsd) or by registerXmlSchema automatically running once the
+  // xsd exists.
   if (
     !context.workspaceState.get<boolean>(WORKSPACE_STATE_SCHEMA_REGISTERED, false)
   ) {
     return undefined;
   }
 
-  const config = vscode.workspace.getConfiguration('xml');
   const entries =
     config.inspect<XmlFileAssociation[]>('fileAssociations')?.workspaceValue ?? [];
   const ourEntry = entries.find(

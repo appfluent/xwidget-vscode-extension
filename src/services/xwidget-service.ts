@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import {
+  CATALOG_FILE,
   CONFIG_FILE,
   PUBSPEC_FILE,
   PUBSPEC_LOCK_FILE,
@@ -13,7 +14,7 @@ import {
 } from '../util/constants';
 import { readXWidgetConfig, XWidgetConfig, XWidgetConfigError } from '../config/xwidget-config';
 import { PubspecLock, readPubspecLock } from '../config/pubspec-lock';
-import { registerXmlSchema, updateXmlSchemaPattern, promptForRedHatXmlIfNeeded } from '../config/xml-schema-registration';
+import { registerXmlCatalog, registerXmlSchema, updateXmlSchemaPattern, promptForRedHatXmlIfNeeded } from '../config/xml-schema-registration';
 import { promptForDartCodeIfNeeded } from './dart-code-prompt';
 import { Version } from '../util/version';
 
@@ -84,6 +85,16 @@ export class XWidgetService implements vscode.Disposable {
     const schemaWatcher = vscode.workspace.createFileSystemWatcher(`**/${SCHEMA_FILE}`);
     schemaWatcher.onDidCreate(() => this.refresh());
     this.disposables.push(schemaWatcher);
+
+    // Same trigger for the schema catalog (builder >= 0.7.0). Its creation —
+    // first generate after an upgrade — is the moment the workspace switches
+    // from the legacy fileAssociations flow to xml.catalogs. Deletion is the
+    // reverse switch (builder downgrade), handled by the downgrade detection
+    // in registerXmlCatalog.
+    const catalogWatcher = vscode.workspace.createFileSystemWatcher(`**/${CATALOG_FILE}`);
+    catalogWatcher.onDidCreate(() => this.refresh());
+    catalogWatcher.onDidDelete(() => this.refresh());
+    this.disposables.push(catalogWatcher);
 
     this.disposables.push(
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.refresh()),
@@ -166,27 +177,37 @@ export class XWidgetService implements vscode.Disposable {
         this.logConfigSummary();
         // Wire up Red Hat XML completion via .vscode/settings.json. Idempotent
         // and silent unless it actually had work to do; safe to call on every
-        // refresh. The pattern is scoped to the configured fragmentsPath
-        // rather than a workspace-wide `**.xml`.
-        await registerXmlSchema(
+        // refresh. Catalog mode (builder >= 0.7.0, detected by the catalog
+        // file existing) registers xml.catalogs and retires our legacy
+        // fileAssociations entry; otherwise the legacy flow runs, with its
+        // pattern scoped to the configured fragmentsPath.
+        const catalogMode = await registerXmlCatalog(
           this._workspaceRoot,
-          this._config.fragmentsPath,
           this.context,
           this.output,
         );
-        // Keep settings.json in sync with xwidget_config.yaml. If the user
-        // changed fragmentsPath since last refresh, rewrite just the pattern
-        // of our entry. No-op on the common case (unchanged) and when the
-        // user has removed our entry.
-        if (
-          previous.fragmentsPath !== undefined &&
-          previous.fragmentsPath !== this._config.fragmentsPath
-        ) {
-          await updateXmlSchemaPattern(
+        if (!catalogMode) {
+          await registerXmlSchema(
+            this._workspaceRoot,
             this._config.fragmentsPath,
             this.context,
             this.output,
           );
+          // Keep settings.json in sync with xwidget_config.yaml. If the user
+          // changed fragmentsPath since last refresh, rewrite just the pattern
+          // of our entry. No-op on the common case (unchanged) and when the
+          // user has removed our entry. Catalog mode doesn't need this —
+          // namespace resolution is location-independent.
+          if (
+            previous.fragmentsPath !== undefined &&
+            previous.fragmentsPath !== this._config.fragmentsPath
+          ) {
+            await updateXmlSchemaPattern(
+              this._config.fragmentsPath,
+              this.context,
+              this.output,
+            );
+          }
         }
         // Fire the install prompts only when this workspace newly became an
         // XWidget project — either on first activation (service starts with

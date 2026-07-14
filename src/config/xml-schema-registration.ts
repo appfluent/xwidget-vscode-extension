@@ -2,8 +2,10 @@ import * as vscode from 'vscode';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import {
+  CATALOG_FILE,
   REDHAT_XML_EXTENSION_ID,
   SCHEMA_FILE,
+  WORKSPACE_STATE_CATALOG_REGISTERED,
   WORKSPACE_STATE_REDHAT_XML_PROMPT_DISMISSED,
   WORKSPACE_STATE_SCHEMA_REGISTERED,
 } from '../util/constants';
@@ -43,8 +45,128 @@ function buildPattern(fragmentsPath: string): string {
 }
 
 /**
+ * Registers the builder-generated XML catalog (`.xwidget/schema_catalog.g.xml`,
+ * xwidget_builder >= 0.7.0) with the Red Hat XML extension via `xml.catalogs`
+ * in `.vscode/settings.json`. The catalog maps every XWidget namespace
+ * (fragments, routes, values) to its schema, replacing the legacy
+ * `xml.fileAssociations` mechanism — so on first registration our legacy
+ * fileAssociations entry is also removed (builder 0.7.0 deletes the root
+ * schema it points at; leaving it would put missing-schema warnings on every
+ * fragment).
+ *
+ * Returns true when the workspace is in catalog mode (the catalog file
+ * exists) — the caller must then skip the legacy registration flow. Returns
+ * false for pre-0.7.0 projects so the caller can fall back to
+ * `registerXmlSchema`.
+ *
+ * Same contracts as the legacy flow: a workspace-state flag makes this a
+ * one-time write (users who remove our entry aren't fought), existing
+ * settings entries are preserved verbatim, and the path is written
+ * workspace-relative — LemMinX resolves it against the workspace root.
+ *
+ * Downgrade detection: if we registered the catalog but the file is gone,
+ * the project left catalog mode (builder downgrade, or `.xwidget/` deleted).
+ * Our catalog entry is removed and both era flags are cleared so the legacy
+ * flow can re-register on the same refresh. This is distinct from user
+ * opt-out, where the catalog file still exists and only our settings entry
+ * was removed — that is respected and never undone.
+ */
+export async function registerXmlCatalog(
+  workspaceRoot: string,
+  context: vscode.ExtensionContext,
+  output: vscode.OutputChannel,
+): Promise<boolean> {
+  const catalogAbs = path.join(workspaceRoot, CATALOG_FILE);
+  if (!(await fileExists(catalogAbs))) {
+    if (context.workspaceState.get<boolean>(WORKSPACE_STATE_CATALOG_REGISTERED, false)) {
+      // We registered the catalog, but the file is gone — downgrade. Undo.
+      try {
+        const config = vscode.workspace.getConfiguration('xml');
+        const catalogs: string[] = (
+          config.inspect<string[]>('catalogs')?.workspaceValue ?? []
+        ).filter((entry) => entry !== CATALOG_FILE);
+        await config.update(
+          'catalogs',
+          catalogs.length > 0 ? catalogs : undefined,
+          vscode.ConfigurationTarget.Workspace,
+        );
+        await context.workspaceState.update(WORKSPACE_STATE_CATALOG_REGISTERED, false);
+        await context.workspaceState.update(WORKSPACE_STATE_SCHEMA_REGISTERED, false);
+        output.appendLine(
+          `[schema-registration] ${CATALOG_FILE} no longer exists (builder ` +
+            'downgrade?) — removed our xml.catalogs entry. Legacy schema ' +
+            'registration will re-run when the root schema is generated.',
+        );
+      } catch (err) {
+        // Flags intentionally left set so the undo retries on the next
+        // refresh rather than leaving a half-unwound registration.
+        output.appendLine(
+          `[schema-registration] failed to remove stale xml.catalogs entry: ${String(err)}`,
+        );
+      }
+    }
+    return false;
+  }
+
+  // Already registered (or user opted out by removing our entry) — catalog
+  // mode stands, but settings.json isn't touched again.
+  if (context.workspaceState.get<boolean>(WORKSPACE_STATE_CATALOG_REGISTERED, false)) {
+    return true;
+  }
+
+  try {
+    const config = vscode.workspace.getConfiguration('xml');
+
+    // One-time migration: drop our legacy fileAssociations entry (matched by
+    // systemId, so user-authored entries are untouched).
+    const associations: XmlFileAssociation[] = (
+      config.inspect<XmlFileAssociation[]>('fileAssociations')?.workspaceValue ?? []
+    ).slice();
+    const withoutOurs = associations.filter(
+      (entry) => !entry || entry.systemId !== SCHEMA_FILE,
+    );
+    if (withoutOurs.length !== associations.length) {
+      await config.update(
+        'fileAssociations',
+        withoutOurs.length > 0 ? withoutOurs : undefined,
+        vscode.ConfigurationTarget.Workspace,
+      );
+      output.appendLine(
+        `[schema-registration] removed legacy xml.fileAssociations entry for ` +
+          `${SCHEMA_FILE} (superseded by the schema catalog).`,
+      );
+    }
+
+    const catalogs: string[] = (
+      config.inspect<string[]>('catalogs')?.workspaceValue ?? []
+    ).slice();
+    if (!catalogs.includes(CATALOG_FILE)) {
+      catalogs.push(CATALOG_FILE);
+      await config.update('catalogs', catalogs, vscode.ConfigurationTarget.Workspace);
+      output.appendLine(
+        `Registered ${CATALOG_FILE} with the Red Hat XML extension via ` +
+          `.vscode/settings.json (xml.catalogs). Fragments, routes, and values ` +
+          'documents now have completion and validation (provided the ' +
+          'redhat.vscode-xml extension is installed).',
+      );
+    }
+    await context.workspaceState.update(WORKSPACE_STATE_CATALOG_REGISTERED, true);
+  } catch (err) {
+    // Non-fatal: validation just won't work until the user adds the entry by
+    // hand. Flag stays unset so the next refresh retries.
+    output.appendLine(
+      `[schema-registration] failed to update .vscode/settings.json: ${String(err)}. ` +
+        `You can add "${CATALOG_FILE}" manually under "xml.catalogs".`,
+    );
+  }
+  return true;
+}
+
+/**
  * Idempotently registers `xwidget_schema.g.xsd` with the Red Hat XML extension
  * by adding an entry to `xml.fileAssociations` in `.vscode/settings.json`.
+ * Legacy flow for xwidget_builder < 0.7.0 projects — newer projects ship a
+ * schema catalog and are handled by `registerXmlCatalog` instead.
  *
  * Called from `XWidgetService.refresh()` when the workspace is detected as an
  * XWidget project. Mirrors the IntelliJ-side experience where the user

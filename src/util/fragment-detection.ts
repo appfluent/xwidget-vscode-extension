@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
-import { XWIDGET_NAMESPACE } from './constants';
+import { XWIDGET_NAMESPACES } from './constants';
 
 /**
- * Returns true if the document is an XWidget fragment — XML containing the
- * xmlns declaration `http://www.appfluent.us/xwidget`.
+ * Returns true if the document is an XWidget fragment — XML containing an
+ * xmlns declaration for a known XWidget namespace (`https://xwidget.dev/fragments`
+ * or the legacy `http://www.appfluent.us/xwidget`).
  *
  * Results are cached per URI to avoid re-scanning on every hover, codelens
  * refresh, etc. The cache is invalidated when a document changes or closes.
@@ -16,7 +17,7 @@ import { XWIDGET_NAMESPACE } from './constants';
 const cache = new Map<string, boolean>();
 const SCAN_LIMIT = 2048;
 const NAMESPACE_PATTERN = new RegExp(
-  `xmlns\\s*=\\s*["']${escapeRegExp(XWIDGET_NAMESPACE)}["']`,
+  `xmlns\\s*=\\s*["'](?:${XWIDGET_NAMESPACES.map(escapeRegExp).join('|')})["']`,
 );
 
 export function isXWidgetFragment(document: vscode.TextDocument): boolean {

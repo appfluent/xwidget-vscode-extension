@@ -1,7 +1,12 @@
 import * as vscode from 'vscode';
-import { URL_DOCUMENTATION, URL_ISSUES, WORKSPACE_STATE_SCHEMA_REGISTERED } from '../util/constants';
+import {
+  URL_DOCUMENTATION,
+  URL_ISSUES,
+  WORKSPACE_STATE_CATALOG_REGISTERED,
+  WORKSPACE_STATE_SCHEMA_REGISTERED,
+} from '../util/constants';
 import { XWidgetService } from '../services/xwidget-service';
-import { registerXmlSchema } from '../config/xml-schema-registration';
+import { registerXmlCatalog, registerXmlSchema } from '../config/xml-schema-registration';
 
 /**
  * Registers the non-generation commands: documentation, issues, the
@@ -46,16 +51,30 @@ export function registerMiscCommands(
           RESTORE,
         );
         if (choice !== RESTORE) return;
+        // Clear both era flags, then mirror the service's registration
+        // logic: catalog mode when the catalog file exists, else the
+        // legacy fileAssociations flow.
+        await context.workspaceState.update(
+          WORKSPACE_STATE_CATALOG_REGISTERED,
+          false,
+        );
         await context.workspaceState.update(
           WORKSPACE_STATE_SCHEMA_REGISTERED,
           false,
         );
-        await registerXmlSchema(
+        const catalogMode = await registerXmlCatalog(
           service.workspaceRoot,
-          service.config.fragmentsPath,
           context,
           output,
         );
+        if (!catalogMode) {
+          await registerXmlSchema(
+            service.workspaceRoot,
+            service.config.fragmentsPath,
+            context,
+            output,
+          );
+        }
       },
     ),
   );

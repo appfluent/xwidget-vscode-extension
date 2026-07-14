@@ -6,6 +6,7 @@ import {
   DEFAULT_ICON_SOURCES,
   DEFAULT_INFLATER_SOURCES,
   DEFAULT_VALUES_PATH,
+  CONFIG_DIR,
   CONFIG_FILE,
 } from '../util/constants';
 
@@ -65,21 +66,31 @@ export class XWidgetConfigError extends Error {
 }
 
 /**
- * Reads xwidget_config.yaml from the given workspace folder root. Returns
- * defaults when the file is absent (so downstream code can always rely on
- * populated values). Throws XWidgetConfigError on malformed YAML.
+ * Reads xwidget_config.yaml from the given workspace folder root, looking in
+ * `.xwidget/` first (its home for builder >= 0.7.0) and falling back to the
+ * root (pre-0.7.0 projects). Returns defaults when the file is absent in
+ * both locations (so downstream code can always rely on populated values).
+ * Throws XWidgetConfigError on malformed YAML.
  */
 export async function readXWidgetConfig(workspaceRoot: string): Promise<XWidgetConfig> {
-  const configPath = path.join(workspaceRoot, CONFIG_FILE);
-  let raw: string;
-  try {
-    raw = await fs.readFile(configPath, 'utf8');
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code === 'ENOENT') {
-      return buildConfig({});
+  const candidatePaths = [
+    path.join(workspaceRoot, CONFIG_DIR, CONFIG_FILE),
+    path.join(workspaceRoot, CONFIG_FILE),
+  ];
+  let raw: string | undefined;
+  for (const configPath of candidatePaths) {
+    try {
+      raw = await fs.readFile(configPath, 'utf8');
+      break;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT') {
+        throw new XWidgetConfigError(`Failed to read ${CONFIG_FILE}`, err);
+      }
     }
-    throw new XWidgetConfigError(`Failed to read ${CONFIG_FILE}`, err);
+  }
+  if (raw === undefined) {
+    return buildConfig({});
   }
 
   let parsed: unknown;
@@ -92,7 +103,7 @@ export async function readXWidgetConfig(workspaceRoot: string): Promise<XWidgetC
   if (parsed === null || parsed === undefined) {
     return buildConfig({});
   }
-  if (typeof parsed !== 'object') {
+  if (typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new XWidgetConfigError(`${CONFIG_FILE} must be a YAML map`);
   }
   return buildConfig(parsed as RawConfig);

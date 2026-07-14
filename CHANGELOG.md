@@ -1,5 +1,34 @@
 # Change Log
 
+## [0.2.0] - 2026-07-13
+
+Support for xwidget_builder 0.7.0 projects, with full backward compatibility for older ones.
+
+### Features
+
+- **Schema catalog registration** — projects generated with builder >= 0.7.0 ship an XML
+  catalog (`.xwidget/schema_catalog.g.xml`); the extension registers it via `xml.catalogs`,
+  giving completion and validation to **fragments, routes, and values** documents by
+  namespace. Pre-0.7 projects keep the original `xml.fileAssociations` mechanism — the
+  extension picks the right mode by what exists on disk.
+- **Automatic settings migration** — the first generate after upgrading a project swaps
+  `.vscode/settings.json` from the legacy `fileAssociations` entry to the catalog entry.
+  Downgrades are detected too: if the catalog disappears, the extension removes its stale
+  entry and restores the legacy registration.
+- **`.xwidget/` config discovery** — `xwidget_config.yaml` is read from the new config
+  directory with fallback to the project root; both locations are watched, so migration is
+  picked up live.
+- **Dual namespace support** — navigation, hover previews, and CodeLens recognize both the
+  new `https://xwidget.dev/fragments` namespace and the legacy
+  `http://www.appfluent.us/xwidget`.
+- **Era-aware status checks** — the Status panel validates whichever registration mode the
+  project uses, and the restore action repairs either.
+
+### Fixed
+
+- A malformed `xwidget_config.yaml` whose document is a YAML list now raises the
+  config-error notification instead of silently falling back to default paths.
+
 ## [0.1.0] - 2026-04-19
 
 Initial release.
